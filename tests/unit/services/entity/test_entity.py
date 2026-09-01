@@ -1,3 +1,4 @@
+import uuid
 from types import SimpleNamespace
 
 import pytest
@@ -500,6 +501,206 @@ def test_get_surface_texts_word_correction_flag_gates_fuzzy_matches():
     no_tag_texts = [tag["surface_text"] for tag in result_on["no_tag_entities"]]
     assert "myank" not in no_tag_texts
     assert no_tag_texts == ["is", "here"]
+
+
+def test_window_edit_distance_is_zero_when_correction_is_off():
+    assert entity._window_edit_distance("bangalore", word_correction=False) == 0
+    assert entity._window_edit_distance("go", word_correction=False) == 0
+
+
+def test_window_edit_distance_caps_short_windows_at_one_edit():
+    assert entity._window_edit_distance("go", word_correction=True) == 1
+    assert entity._window_edit_distance("card", word_correction=True) == 1
+
+
+def test_window_edit_distance_grants_two_edits_to_long_windows():
+    assert entity._window_edit_distance("bangalore", word_correction=True) == 2
+    assert entity._window_edit_distance("credit card", word_correction=True) == 2
+    assert entity._window_edit_distance("abcde", word_correction=True) == 2  # exactly the threshold
+
+
+def test_find_fuzzy_matches_allows_two_edits_on_a_long_window():
+    # "benglore" is 2 edits from "bangalore" ('a'->'e', missing 'a').
+    bundle = make_bundle(
+        phrase_matcher=SimpleNamespace(
+            get_suggestions=lambda text, max_edit_distance=None: (
+                [("bangalore", (2, 2))]
+                if text == "benglore" and (max_edit_distance or 0) >= 2
+                else []
+            )
+        ),
+        entity_model=SimpleNamespace(
+            get_entities_by_surface_text=lambda text: (
+                [{"id": "BLR", "label": "Bangalore", "surface_texts": ["bangalore"]}]
+                if text == "bangalore"
+                else []
+            ),
+        ),
+    )
+
+    no_tags = [{"index": [0, 7]}]
+    matches = list(
+        entity._find_fuzzy_matches(
+            bundle, "benglore", no_tags, word_correction=True
+        )
+    )
+
+    assert matches == [
+        {
+            "index": [0, 7],
+            "surface_text": "benglore",
+            "corrected_text": "bangalore",
+            "score": -2,
+            "entities": [
+                {"entity_id": "BLR", "label": "Bangalore", "surface_text": "bangalore"}
+            ],
+        }
+    ]
+
+
+def test_find_fuzzy_matches_does_not_grant_two_edits_to_a_short_window():
+    # Regression guard: a 2-edit budget on a 2-character window would let
+    # "to" match unrelated short words like "goa".
+    bundle = make_bundle(
+        phrase_matcher=SimpleNamespace(
+            get_suggestions=lambda text, max_edit_distance=None: (
+                [("goa", (2, 2))]
+                if text == "to" and (max_edit_distance or 0) >= 2
+                else []
+            )
+        ),
+        entity_model=SimpleNamespace(
+            get_entities_by_surface_text=lambda text: (
+                [{"id": "GOA", "label": "Goa", "surface_texts": ["goa"]}]
+                if text == "goa"
+                else []
+            ),
+        ),
+    )
+
+    no_tags = [{"index": [0, 1]}]
+    matches = list(
+        entity._find_fuzzy_matches(bundle, "to", no_tags, word_correction=True)
+    )
+
+    assert matches == []
+
+
+def test_get_surface_texts_finds_exact_three_word_entity_with_correction_off():
+    # The lemmatized phrase-cache loop only builds single-word and
+    # adjacent-pair keys, so a 3-word entity can only be found through the
+    # always-on distance-0 sweep. make_bundle()'s default lemmatizer stub
+    # returns no lemmatized chunks, isolating that sweep as the only path
+    # that could produce a match here.
+    bundle = make_bundle(
+        phrase_matcher=SimpleNamespace(
+            get_suggestions=lambda text, max_edit_distance=None: (
+                [("customer support team", (0, 0))]
+                if text == "customer support team" and (max_edit_distance or 0) == 0
+                else []
+            )
+        ),
+        entity_model=SimpleNamespace(
+            get_entities_by_surface_text=lambda text: (
+                [{"id": "SUP", "label": "Customer Support", "surface_texts": ["customer support team"]}]
+                if text == "customer support team"
+                else []
+            ),
+        ),
+    )
+
+    result = entity.get_surface_texts(
+        bundle, "customer support team", word_correction=False
+    )
+
+    assert len(result["universal_entities"]) == 1
+    match = result["universal_entities"][0]
+    assert match["corrected_text"] == "customer support team"
+    assert match["score"] == 0
+    assert match["entities"] == [
+        {"entity_id": "SUP", "label": "Customer Support", "surface_text": "customer support team"}
+    ]
+
+
+def test_get_surface_texts_does_not_correct_typos_with_correction_off():
+    # Regression guard: the always-on sweep must stay at distance 0 when
+    # word_correction is False, so a typo must not slip through.
+    bundle = make_bundle(
+        phrase_matcher=SimpleNamespace(
+            get_suggestions=lambda text, max_edit_distance=None: (
+                [("bangalore", (1, 1))]
+                if text == "banglore" and (max_edit_distance or 0) >= 1
+                else []
+            )
+        ),
+        entity_model=SimpleNamespace(
+            get_entities_by_surface_text=lambda text: (
+                [{"id": "BLR", "label": "Bangalore", "surface_texts": ["bangalore"]}]
+                if text == "bangalore"
+                else []
+            ),
+        ),
+    )
+
+    result = entity.get_surface_texts(bundle, "banglore", word_correction=False)
+
+    assert result["universal_entities"] == []
+
+
+def test_word_correction_end_to_end_with_real_matcher():
+    """
+    Same behavior as the tests above, but with no stubs at all: a real
+    SymSpell-backed PhraseMatcher, a real SQLite-backed EntityModel, built
+    the same way NamespaceRegistry builds one for a live namespace (see
+    talkingdb_nel.services.namespace.registry._build_bundle).
+
+    The stubbed tests above tell us `entity.py`'s own logic is correct for
+    the inputs we hand-crafted. This test tells us that logic still holds
+    once it is wired to the real edit-distance library - which matters
+    because real Damerau-Levenshtein distance is not always what it looks
+    like at a glance: a transposed pair of adjacent letters ("credit" ->
+    "cerdit") is only 1 edit, not 2, and a stub can easily be written to
+    disagree with that without anyone noticing.
+    """
+
+    from talkingdb_nel.services.namespace import registry as registry_module
+
+    bundle = registry_module._build_bundle(f"wc-test-{uuid.uuid4()}")
+
+    seeded = entity.bulk_create_entities(
+        bundle,
+        "csv",
+        "entity_id,label,surface_texts\n"
+        "BLR,Bangalore,bangalore\n"
+        "CC,Credit Card,credit card\n"
+        "SUP,Customer Support,customer support team\n",
+    )
+    assert seeded == {"created": 3, "errors": []}
+
+    def ids_for(text, word_correction):
+        result = entity.get_surface_texts(bundle, text, word_correction=word_correction)
+        return {
+            e["entity_id"]
+            for u in result["universal_entities"]
+            for e in u["entities"]
+        }
+
+    # Regression guard: worked before this fix, must keep working.
+    assert ids_for("flight to bangalore", True) == {"BLR"}
+    assert ids_for("credit card payment", True) == {"CC"}
+    assert ids_for("banglore office", True) == {"BLR"}  # 1-edit
+    assert ids_for("bangalore office", False) == {"BLR"}  # exact, correction off
+    assert ids_for("go to the office", True) == set()  # no false positive
+    assert ids_for("this is a test", True) == set()  # no false positive
+
+    # Only pass with the fix: needs the real 2-edit budget on long windows.
+    assert ids_for("benglore city", True) == {"BLR"}
+    assert ids_for("bnglore weather", True) == {"BLR"}
+
+    # Only pass with the fix: 3-word entity, correction off (phrase cache
+    # only builds single-word/pair keys - this can only be found by the
+    # always-on distance-0 sweep).
+    assert ids_for("customer support team", False) == {"SUP"}
 
 
 def test_create_regex_success():

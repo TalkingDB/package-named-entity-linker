@@ -311,6 +311,17 @@ def _resolve_entities(bundle: NamespaceBundle, suggestions):
 
 MAX_FUZZY_WINDOW_WORDS = 4
 
+# Windows shorter than this keep the old 1-edit budget - at distance 2 a
+# two/three-character window reaches almost any short surface text
+# ("to" is 2 edits from "goa"), causing false positives.
+TWO_EDIT_MIN_LENGTH = 5
+
+
+def _window_edit_distance(window_text: str, word_correction: bool) -> int:
+    if not word_correction:
+        return 0
+    return 2 if len(window_text) >= TWO_EDIT_MIN_LENGTH else 1
+
 
 def _iter_no_tag_windows(message_text: str, no_tags: list[dict]):
     """
@@ -337,14 +348,15 @@ def _iter_no_tag_windows(message_text: str, no_tags: list[dict]):
 
 
 def _find_fuzzy_matches(
-    bundle: NamespaceBundle, message_text: str, no_tags: list[dict]
+    bundle: NamespaceBundle, message_text: str, no_tags: list[dict], word_correction: bool = False,
 ):
     seen = set()
 
     for start, end, window_text in _iter_no_tag_windows(message_text, no_tags):
+        max_edit_distance = _window_edit_distance(window_text, word_correction)
         for suggestion in bundle.phrase_matcher.get_suggestions(
             window_text,
-            max_edit_distance=1,
+            max_edit_distance=max_edit_distance,
         ):
             candidate, distance = _suggestion_parts(suggestion)
 
@@ -495,15 +507,17 @@ def get_surface_texts(
 
             seen.add(seen_key)
 
-    if word_correction:
-        for match in _find_fuzzy_matches(bundle, message_text, no_tags):
-            seen_key = tuple(match["index"]) + (match["corrected_text"],)
+    # Always sweep, even with correction off - at distance 0 this is what finds correctly spelled 3+ word surface texts (the phrase cache above only builds single-word and adjacent-pair keys).
+    for match in _find_fuzzy_matches(
+        bundle, message_text, no_tags, word_correction=word_correction
+    ):
+        seen_key = tuple(match["index"]) + (match["corrected_text"],)
 
-            if seen_key in seen:
-                continue
+        if seen_key in seen:
+            continue
 
-            universal_entities.append(match)
-            seen.add(seen_key)
+        universal_entities.append(match)
+        seen.add(seen_key)
 
     matched_ranges = [tuple(entity["index"]) for entity in universal_entities]
 

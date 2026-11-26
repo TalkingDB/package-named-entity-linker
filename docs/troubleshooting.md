@@ -28,7 +28,7 @@ Problems seen when running or training the Named Entity Linker, with the cause a
 
 | Symptom | Likely cause | Fix |
 | :--- | :--- | :--- |
-| One phrase returns two or more entities | The same [surface text](https://github.com/TalkingDB/ConceptDigger/blob/main/docs/concepts.md#surface-texts-every-name-for-a-thing) is trained on more than one entity | Remove the duplicate from one entity. Treat duplicates as a vocabulary error and check for them before every bulk upload |
+| One phrase returns two or more entities | The same [surface text](https://github.com/TalkingDB/ConceptDigger/blob/master/docs/concepts.md#surface-texts-every-name-for-a-thing) is trained on more than one entity | Remove the duplicate from one entity. Treat duplicates as a vocabulary error and check for them before every bulk upload |
 | A misspelt word is not matched | `word_correction` is `false`, or the word is more than one edit away | Send `"word_correction": true`. Correction allows one edit; add a surface text for common misspellings that are further away |
 | A plural or other form is not matched | The lemmatizer did not reduce it to the trained form | Add the form as a surface text |
 | A regex match disappears | It overlapped a date match; date rule hits win over other regex hits on the same characters | Narrow the date rule or the other pattern so they do not overlap |

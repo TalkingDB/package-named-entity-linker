@@ -28,9 +28,14 @@
 
 <h3 align="center">Symbolic Named Entity Linking for canonical entity resolution</h3>
 
-TalkingDB Named Entity Linker (NEL) finds the known things in a sentence and returns their IDs. Given "stainless hex nut M8", it answers with the entity each phrase belongs to, the exact characters it matched, and whether a spelling correction was needed. It does this with dictionaries, rules and lookups, not with a trained model, so the same input always gives the same output and every match can be traced to the [surface text](https://github.com/TalkingDB/ConceptDigger/blob/main/docs/concepts.md#surface-texts-every-name-for-a-thing) that produced it.
+TalkingDB Named Entity Linker (NEL) finds the known things in a sentence and returns their IDs. Given "stainless hex nut M8", it answers with the entity each phrase belongs to, the exact characters it matched, and whether a spelling correction was needed. It does this with dictionaries, rules and lookups, not with a trained model, so the same input always gives the same output and every match can be traced to the [surface text](https://github.com/TalkingDB/ConceptDigger/blob/master/docs/concepts.md#surface-texts-every-name-for-a-thing) that produced it.
 
 Two terms are easy to mix up. **Named entity recognition (NER)** says "this word is an ingredient". **Named entity linking (NEL)** says "this word is entity `INS-955`", a row you can open and edit. This service does the second.
+
+<p align="center">
+  <img src="docs/images/demo.gif" alt="A short animated tour of package-named-entity-linker: what it is, how to start, and which page to read next">
+</p>
+<p align="center"><sub>A short tour: what it is, how to start, and what to read next.</sub></p>
 
 | Start here | Go deeper |
 | :--- | :--- |
@@ -172,6 +177,12 @@ playground/         # React + Vite training UI, served by FastAPI from playgroun
 - [Documenting architecture decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) (the ADR format used in `docs/adrs/`)
 
 ---
+
+## Support TalkingDB
+
+If package-named-entity-linker saved you time, please [give it a star](https://github.com/TalkingDB/package-named-entity-linker) ⭐. Stars help other developers find the project.
+
+Found a bug, or a document it gets wrong? [Open an issue](https://github.com/TalkingDB/package-named-entity-linker/issues/new). We are always here to help and open to a conversation. Explore the TalkingDB applications at [talkingdb.io](https://talkingdb.io/#applications).
 
 ## License
 

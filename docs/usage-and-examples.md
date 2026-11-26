@@ -48,7 +48,7 @@ curl -s -X POST "$NEL/api/namespaces/fasteners/entities/hex_nut/surface-texts" \
 For many entities at once, send a CSV or JSON file's content to `POST /api/namespaces/{namespace}/entities/bulk` with `{"format": "csv", "content": "..."}`. The response counts what was `created` and lists `errors` per row.
 
 > [!WARNING]
-> Keep each [surface text](https://github.com/TalkingDB/ConceptDigger/blob/main/docs/concepts.md#surface-texts-every-name-for-a-thing) on one entity. If "dome" belongs to two entities, extraction returns both, and the caller has to choose. Check your source file for duplicates before a bulk upload.
+> Keep each [surface text](https://github.com/TalkingDB/ConceptDigger/blob/master/docs/concepts.md#surface-texts-every-name-for-a-thing) on one entity. If "dome" belongs to two entities, extraction returns both, and the caller has to choose. Check your source file for duplicates before a bulk upload.
 
 ## 3. Add a regex rule (optional)
 

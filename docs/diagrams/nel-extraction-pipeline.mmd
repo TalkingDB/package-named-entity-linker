@@ -1,0 +1,15 @@
+flowchart LR
+    accTitle: NEL extraction pipeline
+    accDescr: Text goes through phrase and word matching against trained surface texts, then regex rules, then the leftover tokens are lemmatized and matched again, with an edit distance of one when word correction is on. Matches become universal entities, regex entities, or no tag entities.
+    IN["message_text"] --> PW["Phrase and word matching<br>against trained surface texts"]
+    PW --> RES["Resolve each span<br>to entity IDs"]
+    IN --> RX["Regex rules<br>(dates take priority)"]
+    RES --> NT["Leftover tokens"]
+    RX --> NT
+    NT --> LEM["Lemmatize<br>nuts to nut"]
+    LEM --> FZ{"word_correction?"}
+    FZ -- "on: edit distance 1" --> SUG["Phrase suggestions"]
+    FZ -- "off: exact only" --> SUG
+    SUG --> OUT["universal_entities<br>regex_entities<br>no_tag_entities"]
+    RES --> OUT
+    RX --> OUT

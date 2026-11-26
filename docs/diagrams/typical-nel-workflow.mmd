@@ -1,0 +1,11 @@
+flowchart LR
+    accTitle: Typical NEL workflow
+    accDescr: Create a namespace, train entities and regex rules, commit a snapshot, extract from text, add test cases, run the tests, and roll back if a run regresses.
+    A["1. Create namespace"] --> B["2. Add entities<br>and surface texts"]
+    B --> C["3. Add regex rules<br>(optional)"]
+    C --> D["4. Commit a snapshot"]
+    D --> E["5. Extract from text"]
+    E --> F["6. Save test cases"]
+    F --> G["7. Run tests"]
+    G -- "regression" --> H["Roll back to a commit"]
+    G -- "all pass" --> B

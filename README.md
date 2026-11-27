@@ -33,9 +33,9 @@ TalkingDB Named Entity Linker (NEL) finds the known things in a sentence and ret
 Two terms are easy to mix up. **Named entity recognition (NER)** says "this word is an ingredient". **Named entity linking (NEL)** says "this word is entity `INS-955`", a row you can open and edit. This service does the second.
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="A short animated tour of package-named-entity-linker: what it is, how to start, and which page to read next">
+  <img src="docs/images/demo.gif" alt="Animated demo of a real run: a fastener dictionary of 361 entities is trained, then 'M8 304 stainless hex nut' links to M8, A2 and HEXAGON_FULL_NUT, and 'left hand thread 5/16 UNC' links to LEFT_HAND_THREAD, SIZE_5_16 and THREAD_UNC">
 </p>
-<p align="center"><sub>A short tour: what it is, how to start, and what to read next.</sub></p>
+<p align="center"><sub>A real run at <code>c4a9ef2</code> on 27 Nov 2026, in process with no server: 361 entities and 4,013 surface texts, two queries, each answered in 1 ms or less. Every match comes back with its span. (<code>smart_slugify</code>, which only builds internal ids, was a stand-in in that sandbox.) The API steps are in <a href="docs/usage-and-examples.md">Usage and examples</a>.</sub></p>
 
 | Start here | Go deeper |
 | :--- | :--- |

@@ -2,7 +2,7 @@
 
 [Docs home](README.md) › Usage and examples
 
-A walk through the API from an empty service to a scored test run. Every path below is taken from the routers in [`talkingdb_nel/api/`](../talkingdb_nel/api/). For what happens inside an extraction, see [How matching works](../README.md#how-matching-works).
+A walk through the API from an empty service to a scored test run. Every path below is taken from the routers in [`talkingdb_nel/api/`](../talkingdb_nel/api/). For what happens inside an extraction, see [How matching works](reference.md#how-matching-works).
 
 The examples assume the service runs locally on port 8092 (`make local`). Set a shell variable to save typing:
 
@@ -148,6 +148,7 @@ Other services and scripts can call the same function the API calls. The [SQLite
 
 ```python
 import os
+
 os.environ["ENTITY_DB"] = "/tmp/nel/entities.db"
 os.environ["DICTIONARY_DB"] = "/tmp/nel/dictionary.db"
 os.environ["REGEX_DB"] = "/tmp/nel/regex.db"
@@ -158,7 +159,7 @@ from talkingdb_nel.services.entity.entity import get_surface_texts
 ```python
 from talkingdb_nel.services.namespace.registry import registry
 
-bundle = registry.get("fasteners")   # the namespace must already exist
+bundle = registry.get("fasteners")  # the namespace must already exist
 result = get_surface_texts(bundle, message_text="hexagon nut", word_correction=False)
 ```
 
